@@ -7,7 +7,7 @@
   },
   "permissions": ["tabs", "storage", "http://*/*", "https://*/*", "identity", "identity.email" ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["/js/fuse.js","background.js"]
   },
 
   "options_page": "options.html",

@@ -6,12 +6,12 @@ var optionsUrl = chrome.extension.getURL('options.html');
 storage.get('fishinMSG', function(items) { // 
 	if (items.fishinMSG) {
 
-		message.innerHTML = items.fishinMSG + "<br/>" + 'Нажмите <a target="_blank" href="' + optionsUrl + '">options page</a> чтобы сообщить о фишинге.';
+		message.innerHTML = items.fishinMSG + "<br/>" + 'Нажмите <a target="_blank" href="' + optionsUrl + '">options page</a>,<br/> чтобы сообщить о фишинге.';
 		img.src = "icon-fishing.png";
 	}
 	else {
 		console.log("Нет сообщения fishinMSG");
-		message.innerHTML = 'Нажмите <a target="_blank" href="' + optionsUrl + '">options page</a> чтобы сообщить о фишинге.';	
+		message.innerHTML = 'Нажмите <a target="_blank" href="' + optionsUrl + '">options page</a>,<br/> чтобы сообщить о фишинге.';	
 		img.src = "128.png";		
 	}
 });

@@ -1,3 +1,10 @@
+fuse_list = ["sberbank.ru","tinkoff.ru","pochtabank.ru","vtb.ru","raiffeisen.ru","cbr.ru","rshb.ru","alfabank.ru","gazprombank.ru","sovcombank.ru","open.ru","rosbank.ru","mtsbank.ru","psbank.ru","bm.ru","otpbank.ru","bspb.ru","homecredit.ru","rencredit.ru","tochka.com","uralsib.ru","avangard.ru","rsb.ru","akbars.ru","citibank.ru","forabank.ru","skbbank.ru","unicreditbank.ru","crediteurope.ru","cetelem.ru","rusfinancebank.ru","minbank.ru","absolutbank.ru","mkb.ru","smpbank.ru","bankofkazan.ru","lockobank.ru","zapsibkombank.ru","rgsbank.ru","vtb24.ru","zenit.ru","expobank.ru","centrinvest.ru","sviaz-bank.ru","ubrr.ru","genbank.ru","binbank.ru","prostobank.online","capital-bank.ru","poidem.ru","modulbank.ru","bank-hlynov.ru","kk.bank","bcs-bank.com","pskb.com","banksoyuz.ru","rncb.ru","km-bank.ru","novikom.ru","atb.su","metallinvestbank.ru","nsbank.ru","mosoblbank.ru","koshelev-bank.ru","transcapital.ru","qiwi.com","primbank.ru","tavrich.ru","sdm.ru","rn-bank.ru","severgazbank.ru","vbrr.ru","gebank.ru","itb.ru","maritimebank.com","solid.ru","bbr.ru","lanta.ru","dvbank.ru","energotransbank.com","unistream.ru","wb-bank.ru","mspbank.ru","kuzbank.ru","finambank.ru","akibank.ru","sngb.ru","vtkbank.ru","toyota-bank.ru","akcept.ru","rosbank-dom.ru","ibv.ru","agroros.ru","bancaintesa.ru","domrfbank.ru","vfbank.ru","klookva.ru","baltinvestbank.com","baikalinvestbank.ru","finsb.ru","alexbank.ru","bmwbank.ru","coalmetbank.ru","avtogradbank.ru","creditural.ru","promtransbank.ru","round.ru","sksbank.ru","psbst.ru","albank.ru","forshtadt.ru","bankorange.ru","rusnarbank.ru","bgfbank.ru","timerbank.ru","ns-bank.ru","baltbank.ru","vlbb.ru","mcbankrus.ru","bankvl.ru"];
+//fuse_list = [];
+const fuse_options = {
+  includeScore: true,
+  minMatchCharLength: 2
+};
+
 var storage = chrome.storage.local; // Доступ к локальному хранилищу
 var fishing = [];					// Массив фишинговых сайтов
 var good_site = [];					// Массив сайтов финансовых организаций
@@ -45,49 +52,59 @@ chrome.runtime.onInstalled.addListener(details => {
 chrome.tabs.onUpdated.addListener(
   function(tabId, changeInfo, tab) {
     if (changeInfo.url) {
-		console.log(changeInfo.url);
+		console.log(changeInfo);
 		const url = new URL(changeInfo.url);
-		console.log(chrome.extension.getURL("options.html"));
-		console.log(changeInfo.url);
-		if((changeInfo.url.indexOf("chrome:") == -1) && (changeInfo.url.indexOf("chrome-extension:") == -1))  {
+		if((changeInfo.url.indexOf("chrome:") == -1) && (changeInfo.url.indexOf("chrome-extension:") == -1) && (changeInfo.url.indexOf("newtab") == -1))  {
 			storage.set({'currentURL': changeInfo.url}, function() { // созраняем текущий url для страницы параметров
 						console.log("Записал "+changeInfo.url);
 			});
-		}
-		storage.get('fishing', function(items) {
-			if (items.fishing) {
-			  fishing = JSON.parse(items.fishing);
+			storage.get('fishing', function(items) {
+				if (items.fishing) {
+				  fishing = JSON.parse(items.fishing);
+				}
+				else console.log("Нет fishing");
+			});
+			storage.get('good_site', function(items) {
+				if (items.good_site) {
+					good_site = JSON.parse(items.good_site);
+					console.log(good_site);				
+					if(fuse_list.length == 0) {
+	//					fuse_list = good_site;
+					}
+				}	
+				else console.log("Нет good_site");
+			});	
+	//	Проверка на фишинг - здесь
+	//	1-й этап: проверяем наличие Url в списке фишинговых сайтов
+			for(i=0; i < fishing.length; i++) {
+				if(fishing[i].site == changeInfo.url) { // страница находится в списке фишинговых сайтов - показываем уведомление
+					storage.set({'fishinMSG': "Страница в списке фишинговых сайтов!"}, function() { // созраняем сообщение для popup окна 
+	//							console.log(changeInfo.url);
+					});
+					Alert_message("Страница в списке фишинговых сайтов!");
+					console.log("Страница в списке фишинговых сайтов!!!");
+					break;
+				}
 			}
-			else console.log("Нет fishing");
-		});
-		storage.get('good_site', function(items) {
-			if (items.good_site) {
-			    good_site = JSON.parse(items.good_site);
-			}	
-			else console.log("Нет good_site");
-		});	
-//	Проверка на фишинг - здесь
-//	1-й этап: проверяем наличие Url в списке фишинговых сайтов
-		for(i=0; i < fishing.length; i++) {
-			if(fishing[i].site == changeInfo.url) { // страница находится в списке фишинговых сайтов - показываем уведомление
-				storage.set({'fishinMSG': "Страница в списке фишинговых сайтов!"}, function() { // созраняем сообщение для popup окна 
-//							console.log(changeInfo.url);
-				});
-				Alert_message("Страница в списке фишинговых сайтов!");
-				console.log("Страница в списке фишинговых сайтов!!!");
-				break;
+	// 2-й этап: проверяем "похожесть" URL со списком хороших сайтов с использованием библиотеки нечеткого поиска Fuse.js
+			fuse_list = good_site;
+	//		console.log(fuse_list);
+			if(changeInfo.hostname == "") search_str = url.href;
+			else search_str = url.hostname;
+	//		search_str = "www.on.tinkoff_b.ru/";
+			console.log("search "+String(url.hostname));	
+			const fuse = new Fuse(fuse_list, fuse_options);		
+			const result = fuse.search(String(url.hostname));
+			console.log("result ");
+			console.log(result);		
+			if(result.length != 0) {
+				if(result[0].score <= 0.5) {
+					storage.set({'fishinMSG': "Фишинг сайта "+result[0].item+"<br/>с вероятностью "+Math.floor((1-result[0].score)*100)+"%!<br/>"}, function() { // созраняем сообщение для popup окна 
+					});
+					Alert_message("Фишинг сайта "+result[0].item+"!");
+				}
 			}
 		}
-		for(i=0; i < good_site.length; i++) {
-			if(changeInfo.url.indexOf(good_site[i].toLowerCase()) != -1) {
-				storage.set({'fishinMSG': "Фишинг сайта "+good_site[i]+"!"}, function() { // созраняем сообщение для popup окна 
-//							console.log(changeInfo.url);
-				});
-				Alert_message("Фишинг сайта "+good_site[i]+"!");
-				console.log("Фишинг сайта "+good_site[i]+"!!!");
-				break;
-			}					
-		}		
     }
   }
 );
@@ -122,17 +139,10 @@ function openPopup(tab,popupFile){
                 type: 'popup',
             },function(win){
                 popupWindowId = win.id;
-                //Poll for the view of the window ID. Poll every 50ms for a
-                //  maximum of 20 times (1 second). Then do a second set of polling to
-                //  accommodate slower machines.
-                //  Testing on a single moderately fast machine indicated the view 
-                //  was available after, at most, the second 50ms delay.
                 waitForWindowId(popupWindowId,50,20,actOnPopupViewFound,do2ndWaitForWinId);
             });
             return;
         }else if(typeof popupWindowId === 'number'){
-            //The window is open, and the user pressed the hotkey combo.
-            //  Close the window (as happens for a browserAction popup).
             closePopup();
         }
     });
@@ -173,8 +183,8 @@ function actOnPopupViewFound(view){
     view.document.addEventListener('DOMContentLoaded',function(ev){
         let boundRec = view.document.body.getBoundingClientRect();
         updatePopupWindow({
-            width:boundRec.width + 30,
-            height:boundRec.height + 40
+            width:boundRec.width + 10,
+            height:boundRec.height + 10
         });
     });
     updatePopupWindow({});
