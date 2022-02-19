@@ -1,5 +1,5 @@
-fuse_list = ["sberbank.ru","tinkoff.ru","pochtabank.ru","vtb.ru","raiffeisen.ru","cbr.ru","rshb.ru","alfabank.ru","gazprombank.ru","sovcombank.ru","open.ru","rosbank.ru","mtsbank.ru","psbank.ru","bm.ru","otpbank.ru","bspb.ru","homecredit.ru","rencredit.ru","tochka.com","uralsib.ru","avangard.ru","rsb.ru","akbars.ru","citibank.ru","forabank.ru","skbbank.ru","unicreditbank.ru","crediteurope.ru","cetelem.ru","rusfinancebank.ru","minbank.ru","absolutbank.ru","mkb.ru","smpbank.ru","bankofkazan.ru","lockobank.ru","zapsibkombank.ru","rgsbank.ru","vtb24.ru","zenit.ru","expobank.ru","centrinvest.ru","sviaz-bank.ru","ubrr.ru","genbank.ru","binbank.ru","prostobank.online","capital-bank.ru","poidem.ru","modulbank.ru","bank-hlynov.ru","kk.bank","bcs-bank.com","pskb.com","banksoyuz.ru","rncb.ru","km-bank.ru","novikom.ru","atb.su","metallinvestbank.ru","nsbank.ru","mosoblbank.ru","koshelev-bank.ru","transcapital.ru","qiwi.com","primbank.ru","tavrich.ru","sdm.ru","rn-bank.ru","severgazbank.ru","vbrr.ru","gebank.ru","itb.ru","maritimebank.com","solid.ru","bbr.ru","lanta.ru","dvbank.ru","energotransbank.com","unistream.ru","wb-bank.ru","mspbank.ru","kuzbank.ru","finambank.ru","akibank.ru","sngb.ru","vtkbank.ru","toyota-bank.ru","akcept.ru","rosbank-dom.ru","ibv.ru","agroros.ru","bancaintesa.ru","domrfbank.ru","vfbank.ru","klookva.ru","baltinvestbank.com","baikalinvestbank.ru","finsb.ru","alexbank.ru","bmwbank.ru","coalmetbank.ru","avtogradbank.ru","creditural.ru","promtransbank.ru","round.ru","sksbank.ru","psbst.ru","albank.ru","forshtadt.ru","bankorange.ru","rusnarbank.ru","bgfbank.ru","timerbank.ru","ns-bank.ru","baltbank.ru","vlbb.ru","mcbankrus.ru","bankvl.ru"];
-//fuse_list = [];
+const delta = 0.4; // коэффициент точности для нечеткого поиска
+fuse_list = [];
 const fuse_options = {
   includeScore: true,
   minMatchCharLength: 2
@@ -69,7 +69,7 @@ chrome.tabs.onUpdated.addListener(
 					good_site = JSON.parse(items.good_site);
 					console.log(good_site);				
 					if(fuse_list.length == 0) {
-	//					fuse_list = good_site;
+						fuse_list = good_site;
 					}
 				}	
 				else console.log("Нет good_site");
@@ -78,9 +78,7 @@ chrome.tabs.onUpdated.addListener(
 	//	1-й этап: проверяем наличие Url в списке фишинговых сайтов
 			for(i=0; i < fishing.length; i++) {
 				if(fishing[i].site == changeInfo.url) { // страница находится в списке фишинговых сайтов - показываем уведомление
-					storage.set({'fishinMSG': "Страница в списке фишинговых сайтов!"}, function() { // созраняем сообщение для popup окна 
-	//							console.log(changeInfo.url);
-					});
+					storage.set({'fishinMSG': "<p style='color: red;'>Страница в списке фишинговых сайтов!</p>"}, function() { }); // созраняем сообщение для popup окна 
 					Alert_message("Страница в списке фишинговых сайтов!");
 					console.log("Страница в списке фишинговых сайтов!!!");
 					break;
@@ -88,20 +86,18 @@ chrome.tabs.onUpdated.addListener(
 			}
 	// 2-й этап: проверяем "похожесть" URL со списком хороших сайтов с использованием библиотеки нечеткого поиска Fuse.js
 			fuse_list = good_site;
-	//		console.log(fuse_list);
-			if(changeInfo.hostname == "") search_str = url.href;
-			else search_str = url.hostname;
-	//		search_str = "www.on.tinkoff_b.ru/";
-			console.log("search "+String(url.hostname));	
 			const fuse = new Fuse(fuse_list, fuse_options);		
 			const result = fuse.search(String(url.hostname));
 			console.log("result ");
-			console.log(result);		
+			console.log(result);
+			subdomains = url.hostname.split('.');
+			top_domain = subdomains[subdomains.length-2] + '.' + subdomains[subdomains.length-1];
+			console.log(top_domain);
 			if(result.length != 0) {
-				if(result[0].score <= 0.5) {
-					storage.set({'fishinMSG': "Фишинг сайта "+result[0].item+"<br/>с вероятностью "+Math.floor((1-result[0].score)*100)+"%!<br/>"}, function() { // созраняем сообщение для popup окна 
-					});
-					Alert_message("Фишинг сайта "+result[0].item+"!");
+				if(top_domain != result[0].item && result[0].score <= delta) { // проверяем не является ли URL настоящим сайтом и не "похож" ли он на настоящий сайт
+					storage.set({'fishinMSG': "<p style='color: red;'>Фишинг сайта "+result[0].item+" с вероятностью "+Math.floor((1-result[0].score)*100)+"%!</p>"}, function() { });// созраняем сообщение для popup окна 
+					Alert_message("Фишинг сайта "+result[0].item+"!"); // передаем сообщение в popup окно
+					console.log("Фишинг сайта "+result[0].item+"!");
 				}
 			}
 		}
@@ -123,7 +119,6 @@ function Alert_message(msg) {
 	});
 }
 // Открытие popup окна при сообщении об опасном сайте
-//popupWindowId can be true, false, or the popup's window Id.
 var popupWindowId = false;
 var lastFocusedWin;
 var lastActiveTab;
@@ -196,8 +191,6 @@ function updatePopupWindow(opt){
         width =typeof opt.width  === 'number'?opt.width :300;
         height=typeof opt.height === 'number'?opt.height:300;
     }
-    //By the time we get here it is too late to find the window for which we
-    //  are trying to open the popup.
     let left = lastFocusedWin.left + lastFocusedWin.width - (width +40);
     let top = lastFocusedWin.top + 85; //Just a value that works in the default case.
     let updateInfo = {
@@ -227,23 +220,13 @@ function waitForWindowId(id,delay,maxTries,foundCallback,notFoundCallback) {
 }
 
 function do2ndWaitForWinId(winId,foundCallback){
-    //Poll for the view of the window ID. Poll every 500ms for a
-    //  maximum of 40 times (20 seconds). 
     waitForWindowId(winId,500,40,foundCallback,windowViewNotFound);
 }
 
 function windowViewNotFound(winId,foundCallback){
-    //Did not find the view for the window. Do what you want here.
-    //  Currently fail quietly.
 }
 
 function fakeTabsQuery(options,callback){
-    //This fakes the response of chrome.tabs.query and browser.tabs.query, which in
-    //  a browser action popup returns the tab that is active in the window which
-    //  was the current window when the popup was opened. We need to emulate this
-    //  in the popup as panel.
-    //The popup is also stripped from responses if the response contains multiple
-    //  tabs.
     let origCallback = callback;
     function stripPopupWinFromResponse(tabs){
         return tabs.filter(tab=>{
@@ -261,8 +244,6 @@ function fakeTabsQuery(options,callback){
         origCallback(stripPopupWinFromResponseIfMultiple(tabs));
     }
     if(options.currentWindow || options.lastFocusedWindow){
-        //Make the query use the window which was active prior to the panel being
-        //  opened.
         delete options.currentWindow;
         delete options.lastFocusedWindow;
         options.windowId = lastActiveTab.windowId;

@@ -1,11 +1,9 @@
-
 window.addEvent("domready", function() {
 	storage.get('currentURL', function(items) { 
 		if (items.currentURL) {
 			$("currentURL").value = items.currentURL;
 		}
 		else {
-			console.log("РќРµС‚ currentURl");
 			$("#currentURL").value = "";
 		}
 	});
@@ -60,32 +58,14 @@ function okMsg(txt, end) {
 function promptMsg(txt, end) {
   var SM = new SimpleModal({"btn_ok":"Да", "btn_cancel":"Отменить"});
   SM.show({"model":"confirm","title":end, "contents":txt, "callback":function() {
-	  console.log("aaa");
-/*
-		const request = new XMLHttpRequest();
-		const url = "http://arctic-buoy-school2072.ru/fishing/send_info.php";
-		const params = "id=123123";
-		request.open("POST", url, true);
-		request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		request.responseType = 'json';
-		request.addEventListener("readystatechange", () => {
-			if(request.readyState === 4 && request.status === 200) {    
-				// Данные от сервера получили
-				console.log(request.response);				
-		}
-		});
-		//	Вот здесь мы и передаем строку с данными, которую формировали выше. И собственно выполняем запрос. 
-		request.send(params);
-*/
-    $.ajax({ 
-       url: "ajax_quest.php", 
-    // dataType: "json", // Для использования JSON формата получаемых данных
-       	method: "GET", // Что бы воспользоваться POST методом, меняем данную строку на POST   
-    	data: {"id_product": id_product,"qty_product": qty_product},
-       	success: function(data) {
-			
- 		console.log(data); // Возвращаемые данные выводим в консоль
-       } 
- });
+	json_data = {"a": 1, "b": 2};
+	console.log(json_data);
+	$.ajax({
+		type: 'POST',
+		url: 'http://arctic-buoy-school2072.ru/fishing/send_info.php',
+		data: {json: json_data},
+		dataType: 'json'
+	});
   }});
+
 }
